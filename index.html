@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liam's Schedule</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--surface:#fff;--border:#e8e4de;--text:#1a1a18;--muted:#6b6860;
+  --work:#ddeeff;--work-b:#b0cfe8;--work-t:#0a3d6b;
+  --gym:#d8f2e8;--gym-b:#8fd4b4;--gym-t:#084f38;
+  --study:#eceafd;--study-b:#b8b0f0;--study-t:#2e2480;
+  --caff:#e4f2d4;--caff-b:#a8d080;--caff-t:#1e4a08;
+  --shake:#eeece8;--shake-b:#c0bdb6;--shake-t:#3a3830;
+  --walk:#fdf0d8;--walk-b:#f0c870;--walk-t:#5a3a08;
+  --church:#fde8e0;--church-b:#f0a880;--church-t:#5a2010;
+  --meal:#fce8f0;--meal-b:#e8a8c4;--meal-t:#6b1a3a;
+  --free:#f0eee8;--free-b:#d0cdc8;--free-t:#4a4844;
+  --vac:#fff8e0;--vac-b:#f0d060;--vac-t:#5a4000;
+  --empty:#f5f4f1;--empty-b:#dddbd5;--empty-t:#888680;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.25rem;position:sticky;top:0;z-index:100}
+header h1{font-size:1rem;font-weight:600}
+header p{font-size:0.72rem;color:var(--muted);margin-top:2px}
+.nav-row{background:var(--surface);border-bottom:1px solid var(--border);padding:0.75rem 1.25rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nav-label{font-size:0.72rem;color:var(--muted);font-weight:600;margin-right:2px}
+.week-select,.day-select{font-size:0.8rem;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.jump-btn{font-size:0.72rem;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--study);color:var(--study-t);cursor:pointer;font-weight:600}
+.jump-btn:hover{opacity:0.85}
+.day-meta{background:var(--surface);border-bottom:1px solid var(--border);padding:0.6rem 1.25rem;font-size:0.72rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.day-meta strong{color:var(--text)}
+.day-view{padding:0.75rem 1.25rem 4rem;max-width:600px;margin:0 auto}
+.block{border-radius:10px;margin-bottom:7px;overflow:hidden;border:1px solid;cursor:pointer;transition:transform 0.1s}
+.block:active{transform:scale(0.99)}
+.block.no-expand{cursor:default}
+.block-header{display:flex;align-items:flex-start;gap:10px;padding:9px 13px}
+.block-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.block-left{flex:1;min-width:0}
+.block-time{font-size:0.67rem;font-weight:600;letter-spacing:0.04em;opacity:0.7;margin-bottom:1px}
+.block-title{font-size:0.86rem;font-weight:600;line-height:1.3}
+.block-sub{font-size:0.76rem;margin-top:4px;line-height:1.5}
+.block-sub strong{font-weight:700}
+.block-chevron{font-size:0.65rem;opacity:0.45;transition:transform 0.2s;flex-shrink:0;margin-top:4px}
+.block.open .block-chevron{transform:rotate(180deg)}
+.block-body{padding:0 13px 11px;font-size:0.78rem;line-height:1.55;display:none}
+.block.open .block-body{display:block}
+.block-body p{margin-bottom:5px;opacity:0.9}
+.block-body p:last-child{margin-bottom:0}
+.step{display:flex;gap:8px;margin-bottom:5px;align-items:flex-start}
+.step-num{font-size:0.65rem;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(0,0,0,0.08);margin-top:1px}
+.step-text{font-size:0.76rem;line-height:1.45}
+.study-steps{margin-top:7px;border-top:1px solid rgba(0,0,0,0.08);padding-top:7px}
+.mod-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,0.06);border-radius:5px;padding:3px 8px;font-size:0.68rem;font-weight:600;margin-bottom:6px}
+.type-pill{font-size:0.63rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,0,0,0.08)}
+.b-work{background:var(--work);border-color:var(--work-b);color:var(--work-t)}
+.b-gym{background:var(--gym);border-color:var(--gym-b);color:var(--gym-t)}
+.b-study{background:var(--study);border-color:var(--study-b);color:var(--study-t)}
+.b-caff{background:var(--caff);border-color:var(--caff-b);color:var(--caff-t)}
+.b-shake{background:var(--shake);border-color:var(--shake-b);color:var(--shake-t)}
+.b-walk{background:var(--walk);border-color:var(--walk-b);color:var(--walk-t)}
+.b-church{background:var(--church);border-color:var(--church-b);color:var(--church-t)}
+.b-meal{background:var(--meal);border-color:var(--meal-b);color:var(--meal-t)}
+.b-free{background:var(--free);border-color:var(--free-b);color:var(--free-t)}
+.b-vac{background:var(--vac);border-color:var(--vac-b);color:var(--vac-t)}
+.b-empty{background:var(--empty);border-color:var(--empty-b);color:var(--empty-t)}
+.progress-bar{height:3px;background:var(--border)}
+.progress-fill{height:100%;background:#7F77DD;transition:width 0.3s}
+.legend{display:flex;flex-wrap:wrap;gap:7px;padding:0.6rem 1.25rem;background:var(--surface);border-bottom:1px solid var(--border)}
+.leg{display:flex;align-items:center;gap:4px;font-size:0.67rem;color:var(--muted)}
+.leg-dot{width:7px;height:7px;border-radius:50%}
+</style>
+</head>
+<body>
+<header>
+  <h1>Liam's Daily Schedule</h1>
+  <p>Select week and day — tap study blocks to see today's session plan</p>
+</header>
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="nav-row">
+  <span class="nav-label">Week</span>
+  <select class="week-select" id="weekSel" onchange="render()"></select>
+  <span class="nav-label" style="margin-left:6px">Day</span>
+  <select class="day-select" id="daySel" onchange="render()"></select>
+  <button class="jump-btn" onclick="jumpToday()">Jump to Today</button>
+</div>
+<div class="day-meta" id="dayMeta"></div>
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#5a8fc0"></div>Work</div>
+  <div class="leg"><div class="leg-dot" style="background:#2a8a60"></div>Gym</div>
+  <div class="leg"><div class="leg-dot" style="background:#6050c0"></div>Study</div>
+  <div class="leg"><div class="leg-dot" style="background:#408020"></div>Caffeine</div>
+  <div class="leg"><div class="leg-dot" style="background:#808070"></div>Protein shake</div>
+  <div class="leg"><div class="leg-dot" style="background:#c08020"></div>Walk</div>
+  <div class="leg"><div class="leg-dot" style="background:#c05020"></div>Church/rest</div>
+  <div class="leg"><div class="leg-dot" style="background:#c09020"></div>Vacation</div>
+</div>
+<div class="day-view" id="dayView"></div>
+
+<script>
+// Schedule starts Thursday May 29 2025
+// Week 1 begins Thursday — so Mon/Tue/Wed of week 1 are "not started yet"
+const SCHEDULE_START = new Date(2025, 4, 29); // May 29 2025 (Thursday)
+const TOTAL_WEEKS = 22;
+
+// Days in order, week starts Monday
+const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_NAMES = {mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',sun:'Sunday'};
+
+// Which days in week 1 are before the schedule start (Thu May 29)
+// Week 1 Mon=May 26, Tue=May 27, Wed=May 28 — all before May 29, so show empty
+const WEEK1_START_DAY = 'thu'; // first active day of week 1
+
+// Vacation sets — stored as absolute date strings YYYY-M-D
+const VAC_FULL = new Set([
+  '2025-6-6','2025-6-7',
+  '2025-7-24','2025-7-25','2025-7-26','2025-7-27','2025-7-28',
+  '2025-7-29','2025-7-30','2025-7-31','2025-8-1'
+]);
+// June 5: leaves 4:50pm — work+gym happen, study skipped
+const VAC_PARTIAL_STUDY = new Set(['2025-6-5']);
+
+function getAbsDate(w, day) {
+  // Week 1 Monday = May 26 2025
+  const weekMonday = new Date(2025, 4, 26); // May 26
+  weekMonday.setDate(weekMonday.getDate() + (w - 1) * 7);
+  const off = DAYS.indexOf(day);
+  const d = new Date(weekMonday);
+  d.setDate(weekMonday.getDate() + off);
+  return d;
+}
+
+function dateKey(d) {
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+function isBeforeStart(w, day) {
+  if (w > 1) return false;
+  // Week 1: Mon/Tue/Wed are before May 29
+  return ['mon','tue','wed'].includes(day);
+}
+
+function isVacFull(w, day) {
+  return VAC_FULL.has(dateKey(getAbsDate(w, day)));
+}
+
+function isVacPartialStudy(w, day) {
+  return VAC_PARTIAL_STUDY.has(dateKey(getAbsDate(w, day)));
+}
+
+// ─── STUDY PLAN ─────────────────────────────────────────────
+const plan = [
+  // WEEK 1 (starts Thu May 29)
+  {w:1,day:'thu',mod:1,sec:'C',topic:'Demand Management',focus:'Demand management strategies, CPFR, demand shaping vs. sensing. How companies influence customer demand patterns.',type:'new'},
+  {w:1,day:'fri',mod:1,sec:'C',topic:'Demand Management — review',focus:'Active recall on M1C. Write everything you know about demand management from memory. Practice questions.',type:'review'},
+  {w:1,day:'sat',mod:1,sec:'D',topic:'Forecasting — intro + moving average',focus:'Skim all forecasting headings first. Then: simple and weighted moving averages. Work calculations by hand — do not just read examples.',type:'new'},
+
+  // WEEK 2
+  {w:2,day:'mon',mod:1,sec:'D',topic:'Exponential smoothing',focus:'Exponential smoothing formula, alpha values, trend-adjusted smoothing. Work problems by hand.',type:'new'},
+  {w:2,day:'tue',mod:1,sec:'D',topic:'MAD, MAPE & forecast error',focus:'Mean absolute deviation, mean absolute percentage error. How to evaluate forecast accuracy. Calculate from practice data.',type:'new'},
+  {w:2,day:'wed',mod:1,sec:'D',topic:'Forecasting — full review',focus:'All forecasting formulas from memory. No book. Then 15 practice questions — forecasting is heavily tested.',type:'review'},
+  {w:2,day:'thu',mod:1,sec:'E',topic:'Supply & Demand Alignment',focus:'S&OP process, integrated business planning (IBP), consensus forecasting, balancing supply and demand. Leaving 4:50 PM — study block skipped today.',type:'new'},
+  {w:2,day:'fri',mod:1,sec:'vacation',topic:'Vacation — no study',focus:'Away until June 7 11PM. Rest and recharge.',type:'vac'},
+  {w:2,day:'sat',mod:1,sec:'vacation',topic:'Vacation — no study',focus:'Away until June 7 11PM. Rest and recharge.',type:'vac'},
+
+  // WEEK 3 — make up Jun 5-7 content
+  {w:3,day:'mon',mod:1,sec:'E',topic:'S&OP — make-up from Jun 5',focus:'Supply & Demand Alignment full session. S&OP process, IBP, consensus forecasting, balancing supply and demand.',type:'new'},
+  {w:3,day:'tue',mod:1,sec:'E',topic:'M1E review + M1 full recall',focus:'S&OP recall. Then write a one-page brain dump of everything you know about Module 1 with no book.',type:'review'},
+  {w:3,day:'wed',mod:1,sec:'D',topic:'Forecasting math drill — make-up',focus:'Return to M1D: every formula type by hand. Moving average, exponential smoothing, MAD, MAPE. Keep sharp after vacation.',type:'review'},
+  {w:3,day:'thu',mod:2,sec:'A',topic:'Supply Chain Design & Optimization',focus:'Network design principles, facility location trade-offs, centralized vs decentralized, postponement in network design.',type:'new'},
+  {w:3,day:'fri',mod:2,sec:'A',topic:'Supply chain design — review',focus:'Active recall on M2A. Sketch a supply chain network from memory and label trade-offs at each node.',type:'review'},
+  {w:3,day:'sat',mod:1,sec:'D+E',topic:'M1 full simulation + forecasting drill',focus:'Open with all forecasting formulas from memory. Then full Module 1 practice quiz. Target 75%+.',type:'review'},
+
+  // WEEK 4
+  {w:4,day:'mon',mod:2,sec:'B',topic:'End-to-End Connectivity & Visibility',focus:'Information flows, supply chain visibility tools, EDI, APIs, integration across tiers, bullwhip effect.',type:'new'},
+  {w:4,day:'tue',mod:2,sec:'B',topic:'Visibility + bullwhip effect review',focus:'Bullwhip effect causes and remedies from memory. 10 practice questions on M2B.',type:'review'},
+  {w:4,day:'wed',mod:2,sec:'C',topic:'Supply Chain Metrics & Reports',focus:'OTIF, perfect order rate, cash-to-cash cycle, inventory turns, SCOR model framework and levels.',type:'new'},
+  {w:4,day:'thu',mod:2,sec:'C',topic:'Metrics + SCOR review',focus:'SCOR model Plan/Source/Make/Deliver/Return/Enable from memory. Calculate cash-to-cash from practice data.',type:'review'},
+  {w:4,day:'fri',mod:2,sec:'review',topic:'Full M2 review',focus:'All three sections active recall. Write every metric and KPI from memory. Full M2 practice quiz.',type:'review'},
+  {w:4,day:'sat',mod:2,sec:'review',topic:'M2 simulation + M1 refresh',focus:'First half: full M2 practice quiz. Second half: 15 M1 questions — keep forecasting sharp.',type:'review'},
+
+  // WEEK 5
+  {w:5,day:'mon',mod:3,sec:'A',topic:'Aligning Sourcing to Demand',focus:'Make vs buy decision framework, total cost of ownership (TCO), outsourcing rationale. Connect to your AT&T and Alibaba experience.',type:'new'},
+  {w:5,day:'tue',mod:3,sec:'A',topic:'Sourcing alignment — review',focus:'TCO calculation from memory. Make vs buy criteria list from scratch. Practice questions.',type:'review'},
+  {w:5,day:'wed',mod:3,sec:'B',topic:'Kraljic matrix & category strategy',focus:'Four quadrants: strategic, leverage, bottleneck, non-critical. How to manage each differently. Draw from memory.',type:'new'},
+  {w:5,day:'thu',mod:3,sec:'B',topic:'Category strategy review',focus:'Reconstruct Kraljic matrix from memory. Categorize 10 sample items. Practice questions on sourcing strategy.',type:'review'},
+  {w:5,day:'fri',mod:3,sec:'C',topic:'Product Design Influence',focus:'Design for manufacturability (DFM), design for supply chain (DFS), postponement, modular design, platform strategy.',type:'new'},
+  {w:5,day:'sat',mod:3,sec:'A+B+C',topic:'M3A/B/C deep review',focus:'Active recall on all three sections. Reconstruct Kraljic matrix. Write sourcing alignment criteria from memory. Practice quiz.',type:'review'},
+
+  // WEEK 6
+  {w:6,day:'mon',mod:3,sec:'D',topic:'Supplier Selection & Contracting',focus:'RFI, RFQ, RFP process. Supplier evaluation criteria, weighted scoring. Contract types: fixed, cost-plus, time & materials. Your AT&T contract work applies here.',type:'new'},
+  {w:6,day:'tue',mod:3,sec:'D',topic:'Supplier management & SLAs',focus:'Supplier performance management, scorecards, SLAs, supplier development, approved vendor lists.',type:'new'},
+  {w:6,day:'wed',mod:3,sec:'D',topic:'Supplier selection — deep recall',focus:'RFQ/RFP process from memory. Write a sample supplier scorecard from scratch. 15 practice questions on M3D.',type:'review'},
+  {w:6,day:'thu',mod:3,sec:'review',topic:'Full M3 review',focus:'All four sections active recall — no book. Your strongest module. Push for 80%+.',type:'review'},
+  {w:6,day:'fri',mod:3,sec:'review',topic:'M3 practice quiz + weak spots',focus:'Full M3 practice quiz. Any section below 75%: targeted re-read immediately after.',type:'review'},
+  {w:6,day:'sat',mod:3,sec:'review',topic:'M3 simulation + M1 forecasting refresh',focus:'First hour: M3 full practice questions — exam conditions. Last 30 min: forecasting formulas from memory.',type:'review'},
+
+  // WEEK 7
+  {w:7,day:'mon',mod:4,sec:'A',topic:'Planning Operations — S&OP & MPS',focus:'Sales & Operations Planning in depth, Master Production Schedule (MPS), demand time fence, planning time fence.',type:'new'},
+  {w:7,day:'tue',mod:4,sec:'A',topic:'MPS review',focus:'Reconstruct MPS logic from memory. Time fence definitions. How MPS links to MRP. Practice questions.',type:'review'},
+  {w:7,day:'wed',mod:3,sec:'review',topic:'Final M3 pass',focus:'Last dedicated M3 session. Write supplier contracting and Kraljic matrix one more time. Close M3 with confidence.',type:'review'},
+  {w:7,day:'thu',mod:4,sec:'A',topic:'MRP logic & inputs',focus:'Material Requirements Planning: BOM, inventory records, MPS as input. Gross to net calculations. Work through examples.',type:'new'},
+  {w:7,day:'fri',mod:4,sec:'A',topic:'MRP calculations',focus:'Net requirements, planned order releases. Do MRP calculation problems by hand — heavily tested.',type:'new'},
+  {w:7,day:'sat',mod:4,sec:'A',topic:'M4A full session — MRP/MPS calculations',focus:'Dedicated calculation session. Work every MRP and MPS problem available. Check answers. Redo anything wrong.',type:'new'},
+
+  // WEEK 8
+  {w:8,day:'mon',mod:4,sec:'B',topic:'Capacity Planning',focus:'Capacity requirements planning (CRP), demonstrated vs rated capacity, efficiency and utilization calculations.',type:'new'},
+  {w:8,day:'tue',mod:4,sec:'B',topic:'Capacity calculations review',focus:'Utilization = actual/available. Efficiency = actual/standard. Reconstruct formulas and work problems.',type:'review'},
+  {w:8,day:'wed',mod:4,sec:'B',topic:'Production Activity Control',focus:'Scheduling: forward vs backward, finite vs infinite, priority rules (EDD, SPT, FIFO). Gantt charts.',type:'new'},
+  {w:8,day:'thu',mod:4,sec:'B',topic:'Scheduling review',focus:'Priority rules from memory. Draw a Gantt chart from practice data. Theory of constraints — identify bottleneck.',type:'review'},
+  {w:8,day:'fri',mod:4,sec:'A+B',topic:'M4A+B combined review',focus:'MRP calculations + capacity calculations. Alternate between problem types. Full M4A+B practice quiz.',type:'review'},
+  {w:8,day:'sat',mod:4,sec:'A+B',topic:'M4 calculation marathon',focus:'Extended session — MRP, MPS, capacity, scheduling problems only. The math-heavy core of the exam.',type:'review'},
+
+  // WEEK 9 — vacation Jul 24 (Thu), Jul 25 (Fri), Jul 26 (Sat)
+  {w:9,day:'mon',mod:4,sec:'C',topic:'Inventory — types & costs',focus:'Raw material, WIP, finished goods. Inventory costs: carrying, ordering, shortage. Independent vs dependent demand.',type:'new'},
+  {w:9,day:'tue',mod:4,sec:'C',topic:'EOQ formula',focus:'Economic Order Quantity derivation and calculation. Sensitivity analysis. When EOQ assumptions break down.',type:'new'},
+  {w:9,day:'wed',mod:4,sec:'C',topic:'Safety stock & reorder points',focus:'Safety stock with service level. Reorder point = demand during lead time + safety stock. Work problems.',type:'new'},
+  {w:9,day:'thu',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away July 24 – August 1. Rest and recharge.',type:'vac'},
+  {w:9,day:'fri',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away July 24 – August 1.',type:'vac'},
+  {w:9,day:'sat',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away July 24 – August 1.',type:'vac'},
+
+  // WEEK 10 — vacation Mon-Fri Jul 28-Aug 1, back Sat Aug 2
+  {w:10,day:'mon',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away until August 1.',type:'vac'},
+  {w:10,day:'tue',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away until August 1.',type:'vac'},
+  {w:10,day:'wed',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away until August 1.',type:'vac'},
+  {w:10,day:'thu',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Away until August 1.',type:'vac'},
+  {w:10,day:'fri',mod:4,sec:'vacation',topic:'Vacation — no study',focus:'Back tonight. Light rest — back to schedule Saturday.',type:'vac'},
+  {w:10,day:'sat',mod:4,sec:'C',topic:'Make-up: Inventory types & EOQ — post vacation',focus:'Ease back in. Review inventory types and costs, then work EOQ calculations. Re-entry session — don\'t rush.',type:'new'},
+
+  // WEEK 11
+  {w:11,day:'mon',mod:4,sec:'C',topic:'Safety stock & reorder points — make-up',focus:'Safety stock with service level. Reorder point = demand during lead time + safety stock. Work problems.',type:'new'},
+  {w:11,day:'tue',mod:4,sec:'C',topic:'ABC classification & cycle counting',focus:'ABC analysis: classify by value. Cycle counting frequency by class. Physical inventory vs cycle count trade-offs.',type:'new'},
+  {w:11,day:'wed',mod:4,sec:'C',topic:'Inventory full recall',focus:'All inventory formulas from memory: EOQ, safety stock, ROP. 15 inventory practice questions.',type:'review'},
+  {w:11,day:'thu',mod:4,sec:'C',topic:'Inventory calculation deep session',focus:'Extended EOQ, safety stock, and ROP problem sets. Work every available problem. Redo anything below 80%.',type:'review'},
+  {w:11,day:'fri',mod:4,sec:'D',topic:'Performance & Continuous Improvement',focus:'Lean principles: waste types (TIMWOOD), 5S, kaizen, value stream mapping. Connect to your Six Sigma Green Belt.',type:'new'},
+  {w:11,day:'sat',mod:4,sec:'C+D',topic:'M4C calculations + M4D intro',focus:'First half: inventory drill — EOQ, safety stock, ROP from memory. Second half: Lean intro and TIMWOOD from scratch.',type:'review'},
+
+  // WEEK 12
+  {w:12,day:'mon',mod:4,sec:'D',topic:'Six Sigma in supply chain',focus:'DMAIC, process capability, control charts. Your Green Belt gives you a head start — extend into supply chain applications.',type:'new'},
+  {w:12,day:'tue',mod:4,sec:'D',topic:'Lean + Six Sigma review',focus:'7 wastes from memory. DMAIC steps. How lean and Six Sigma complement each other. Practice questions.',type:'review'},
+  {w:12,day:'wed',mod:4,sec:'review',topic:'Full M4 review — A through D',focus:'Write everything you know about M4 with no book. MRP logic, capacity formulas, inventory formulas, lean principles.',type:'review'},
+  {w:12,day:'thu',mod:4,sec:'review',topic:'M4 full practice quiz',focus:'Full Module 4 practice questions — exam conditions. Target 75%+. Flag everything below that.',type:'review'},
+  {w:12,day:'fri',mod:4,sec:'review',topic:'M4 weak spot targeting',focus:'Go back through every M4 question you got wrong. Re-read those sections. Redo the questions.',type:'review'},
+  {w:12,day:'sat',mod:4,sec:'review',topic:'M4 final simulation',focus:'Full M4 timed quiz — treat as mini exam. Review every wrong answer. Close M4 with confidence.',type:'review'},
+
+  // WEEK 13
+  {w:13,day:'mon',mod:5,sec:'A',topic:'Logistics & Distribution',focus:'Distribution network design, warehouse roles, 3PL vs 4PL, cross-docking, distribution center operations.',type:'new'},
+  {w:13,day:'tue',mod:5,sec:'A',topic:'Logistics review',focus:'3PL vs 4PL from memory. Distribution center vs cross-dock use cases. 10 practice questions.',type:'review'},
+  {w:13,day:'wed',mod:5,sec:'B',topic:'Transportation modes',focus:'Road, rail, air, ocean, pipeline, intermodal. Cost vs speed vs reliability trade-offs. Modal selection criteria.',type:'new'},
+  {w:13,day:'thu',mod:5,sec:'B',topic:'Freight & carrier types',focus:'TL vs LTL, common vs contract carriers, freight forwarders, brokers. Cost drivers: weight, distance, density, mode.',type:'new'},
+  {w:13,day:'fri',mod:5,sec:'B',topic:'Incoterms — part 1',focus:'EXW, FCA, FAS, FOB. Who bears cost and risk at each point. Draw the transfer-of-risk timeline.',type:'new'},
+  {w:13,day:'sat',mod:5,sec:'A+B',topic:'M5A+B review + Incoterms part 1 drill',focus:'First half: M5A recall. Second half: Incoterms EXW through FOB until automatic from memory.',type:'review'},
+
+  // WEEK 14
+  {w:14,day:'mon',mod:5,sec:'B',topic:'Incoterms — part 2',focus:'CFR, CIF, CPT, CIP, DAP, DPU, DDP. Complete all 11 terms. Write them from memory with risk/cost transfer point for each.',type:'new'},
+  {w:14,day:'tue',mod:5,sec:'B',topic:'Incoterms full recall',focus:'Write all 11 Incoterms from memory with seller/buyer responsibility. Heavily tested and critical for Taiwan-facing roles.',type:'review'},
+  {w:14,day:'wed',mod:5,sec:'C',topic:'Trade Considerations',focus:'Customs, tariffs, HTS codes, import/export documentation, trade compliance, free trade zones. Directly relevant to Taiwan supplier work.',type:'new'},
+  {w:14,day:'thu',mod:5,sec:'C',topic:'Trade compliance review',focus:'Key trade documents from memory: commercial invoice, bill of lading, packing list, certificate of origin. Practice questions.',type:'review'},
+  {w:14,day:'fri',mod:5,sec:'D',topic:'Reverse Logistics',focus:'Returns management, reverse flow networks, refurbishment, recycling, closed-loop supply chains.',type:'new'},
+  {w:14,day:'sat',mod:5,sec:'review',topic:'M5 full simulation + Incoterms drill',focus:'Open with 15 min Incoterms-only recall — all 11. Then full M5 timed quiz. Review every wrong answer.',type:'review'},
+
+  // WEEK 15
+  {w:15,day:'mon',mod:6,sec:'A',topic:'Customer Relationships',focus:'CRM systems, customer segmentation, order management, service level agreements, customer profitability analysis.',type:'new'},
+  {w:15,day:'tue',mod:6,sec:'A',topic:'Customer relationships review',focus:'CRM components from memory. SLA elements list. Customer segmentation criteria. 10 practice questions.',type:'review'},
+  {w:15,day:'wed',mod:6,sec:'B',topic:'Supplier & Supply Chain Relationships',focus:'Supplier Relationship Management (SRM), VMI, collaborative planning (CPFR), partnership tiers, information sharing.',type:'new'},
+  {w:15,day:'thu',mod:6,sec:'B',topic:'SRM & VMI review',focus:'VMI mechanics from memory. CPFR process steps. SRM vs transactional purchasing. Relevant to your Taiwan-facing career goals.',type:'review'},
+  {w:15,day:'fri',mod:6,sec:'review',topic:'Full M6 review',focus:'Both sections active recall. M6 is conceptually lighter — push for 85%+ on practice questions.',type:'review'},
+  {w:15,day:'sat',mod:6,sec:'review',topic:'M6 quiz + M3 refresh',focus:'First half: M6 full practice quiz. Second half: M3 sourcing refresh — supplier selection criteria from memory.',type:'review'},
+
+  // WEEK 16
+  {w:16,day:'mon',mod:7,sec:'A',topic:'Risk Management & Supply Chain Risks',focus:'Risk categories: supply, demand, operational, environmental, geopolitical. Single-source risk. Risk vs uncertainty.',type:'new'},
+  {w:16,day:'tue',mod:7,sec:'A',topic:'Risk types review',focus:'All risk categories from memory. Real-world examples for each. 10 practice questions.',type:'review'},
+  {w:16,day:'wed',mod:7,sec:'B',topic:'Risk Analysis & Response',focus:'Risk assessment matrix (likelihood × impact), mitigation strategies, business continuity planning, supplier diversification.',type:'new'},
+  {w:16,day:'thu',mod:7,sec:'B',topic:'Risk response review',focus:'Draw risk matrix from memory. Four responses: avoid, mitigate, transfer, accept. BCP components. Practice questions.',type:'review'},
+  {w:16,day:'fri',mod:7,sec:'review',topic:'Full M7 review',focus:'Both sections recall. Risk matrix from memory. All response strategies. Full M7 practice quiz.',type:'review'},
+  {w:16,day:'sat',mod:7,sec:'review',topic:'M7 quiz + M4 inventory refresh',focus:'First half: M7 full quiz, target 80%+. Second half: M4 inventory formulas — EOQ, safety stock, ROP from memory.',type:'review'},
+
+  // WEEK 17 — M8 (final new content)
+  {w:17,day:'mon',mod:8,sec:'A',topic:'Optimizing Supply Chain Strategy',focus:'Lean supply chains, agile supply chains, leagile approach. Trade-off analysis, postponement strategy.',type:'new'},
+  {w:17,day:'tue',mod:8,sec:'A',topic:'Optimization review',focus:'Lean vs agile vs leagile from memory. When to use each. Postponement types. Practice questions.',type:'review'},
+  {w:17,day:'wed',mod:8,sec:'B',topic:'Sustainability',focus:'Circular economy, closed-loop supply chains, carbon footprint, scope 1/2/3 emissions, ESG reporting in supply chain.',type:'new'},
+  {w:17,day:'thu',mod:8,sec:'C',topic:'Technology Trends',focus:'IoT in supply chain, blockchain for traceability, AI/ML demand forecasting, digital twins, Industry 4.0, autonomous vehicles.',type:'new'},
+  {w:17,day:'fri',mod:8,sec:'review',topic:'Full M8 review',focus:'All three sections active recall. Technology trends section is growing in exam weight — do not underweight it.',type:'review'},
+  {w:17,day:'sat',mod:8,sec:'review',topic:'M8 full quiz — final new content closed',focus:'Full M8 practice quiz. After today: no new content. Review only for the remaining 5 weeks.',type:'review'},
+
+  // WEEK 18 — Review M1-M4
+  {w:18,day:'mon',mod:1,sec:'review',topic:'M1 full review — demand & forecasting',focus:'Complete Module 1 recall. All forecasting formulas from memory. S&OP process. Target 80%+ on practice quiz.',type:'review'},
+  {w:18,day:'tue',mod:1,sec:'review',topic:'M1 forecasting calculation drill',focus:'Every formula type by hand — moving average, exponential smoothing, MAD, MAPE. No shortcuts.',type:'review'},
+  {w:18,day:'wed',mod:2,sec:'review',topic:'M2 full review — global networks',focus:'Supply chain design, SCOR model, all metrics. Write every KPI from memory. Full M2 practice quiz.',type:'review'},
+  {w:18,day:'thu',mod:3,sec:'review',topic:'M3 full review — sourcing',focus:'Kraljic matrix, TCO, supplier selection, RFQ/RFP. Your strongest module — push for 85%+.',type:'review'},
+  {w:18,day:'fri',mod:4,sec:'review',topic:'M4 review — MRP & MPS',focus:'MRP net requirements, MPS logic, time fences. Work calculation problems. Do not let M4 fade.',type:'review'},
+  {w:18,day:'sat',mod:1,sec:'review',topic:'M1-M3 mini exams',focus:'20 M1 questions, 20 M2 questions, 20 M3 questions — timed, exam conditions. Review all wrong answers.',type:'review'},
+
+  // WEEK 19 — Review M4-M8
+  {w:19,day:'mon',mod:4,sec:'review',topic:'M4 capacity & inventory review',focus:'Capacity calculations: utilization, efficiency. Inventory: EOQ, safety stock, ROP. Work problems for both.',type:'review'},
+  {w:19,day:'tue',mod:4,sec:'review',topic:'M4 full simulation',focus:'Full M4 practice quiz — 30+ questions, timed. Identify remaining weak areas.',type:'review'},
+  {w:19,day:'wed',mod:5,sec:'review',topic:'M5 full review — logistics & Incoterms',focus:'All 11 Incoterms from memory — non-negotiable. Distribution types, modal trade-offs, trade documents.',type:'review'},
+  {w:19,day:'thu',mod:5,sec:'review',topic:'Incoterms drill + trade compliance',focus:'Incoterms flashcard-style until 100% recall. Then: customs, HTS codes, free trade zones.',type:'review'},
+  {w:19,day:'fri',mod:6,sec:'review',topic:'M6 full review — relationships',focus:'VMI, CPFR, SRM, CRM from memory. Customer segmentation, SLA components. Full M6 practice quiz.',type:'review'},
+  {w:19,day:'sat',mod:4,sec:'review',topic:'M4-M6 mini exams',focus:'20 M4 questions, 20 M5 questions, 20 M6 questions — timed. Review all wrong answers.',type:'review'},
+
+  // WEEK 20 — Practice exams
+  {w:20,day:'mon',mod:7,sec:'review',topic:'M7 + M8 full review',focus:'Risk matrix and all response strategies. Then lean vs agile, sustainability metrics, technology trends.',type:'review'},
+  {w:20,day:'tue',mod:1,sec:'review',topic:'Full practice exam #1 — 150 questions',focus:'Simulate exact exam conditions. 3.5 hour limit. No phone. No breaks. Record score and every wrong answer.',type:'exam'},
+  {w:20,day:'wed',mod:1,sec:'review',topic:'Practice exam #1 review — part 1',focus:'Go through every wrong answer. Re-read the relevant section for each. Do not skip this step.',type:'review'},
+  {w:20,day:'thu',mod:1,sec:'review',topic:'Practice exam #1 review — part 2',focus:'Continue reviewing wrong answers. Categorize which modules are weakest. Build your final priority list.',type:'review'},
+  {w:20,day:'fri',mod:1,sec:'review',topic:'Weakest module targeted review',focus:'Spend entire session on your single weakest module from the practice exam. Targeted re-read + practice questions.',type:'review'},
+  {w:20,day:'sat',mod:1,sec:'review',topic:'Full practice exam #2 — 150 questions',focus:'Second full simulation. Compare score to Tuesday. Are you trending up? Review all wrong answers after.',type:'exam'},
+
+  // WEEK 21 — Final prep
+  {w:21,day:'mon',mod:1,sec:'review',topic:'Practice exam #2 review',focus:'Complete review of Saturday\'s wrong answers. Any module still below 70% is your final target.',type:'review'},
+  {w:21,day:'tue',mod:1,sec:'review',topic:'Final weak module blitz',focus:'Last chance to fix a specific weakness. Targeted read + 20 questions. Reinforcement only.',type:'review'},
+  {w:21,day:'wed',mod:1,sec:'review',topic:'Key terminology review',focus:'Go through the CSCP key terminology list. Write definitions from memory for any term you hesitate on.',type:'review'},
+  {w:21,day:'thu',mod:1,sec:'review',topic:'Formula sheet from memory',focus:'Write every formula and framework on one page: EOQ, safety stock, ROP, capacity, forecasting, Incoterms, Kraljic.',type:'review'},
+  {w:21,day:'fri',mod:1,sec:'review',topic:'Final 50-question timed quiz',focus:'50 questions, mixed modules, timed at 70 minutes. Exam pace: ~1.4 min per question. Review after.',type:'exam'},
+  {w:21,day:'sat',mod:1,sec:'review',topic:'Light review — confidence building',focus:'No new practice exams. Review formula sheet. Read through key terminology. Keep it light.',type:'review'},
+
+  // WEEK 22 — Wind down
+  {w:22,day:'mon',mod:1,sec:'review',topic:'Formula and terminology pass',focus:'Final read-through of formula sheet and key terms. Nothing new. Reinforcing what you know.',type:'review'},
+  {w:22,day:'tue',mod:1,sec:'review',topic:'Light review — wind down',focus:'30 min maximum. Incoterms and forecasting formulas one last time. Then stop. Rest your brain.',type:'review'},
+  {w:22,day:'wed',mod:1,sec:'review',topic:'Rest — no studying',focus:'No studying today. Sleep, eat well, get outside. Your brain consolidates during rest, not cramming.',type:'review'},
+  {w:22,day:'thu',mod:1,sec:'review',topic:'Exam day',focus:'Good sleep the night before. Real breakfast. Arrive early. Trust the 22 weeks of work you put in.',type:'exam'},
+  {w:22,day:'fri',mod:1,sec:'review',topic:'Rest',focus:'Rest.',type:'review'},
+  {w:22,day:'sat',mod:1,sec:'review',topic:'Rest',focus:'Rest.',type:'review'},
+];
+
+const modNames = {
+  1:'M1 — Supply Chains, Demand & Forecasting',
+  2:'M2 — Global Supply Chain Networks',
+  3:'M3 — Sourcing Products & Services',
+  4:'M4 — Internal Operations & Inventory',
+  5:'M5 — Forward & Reverse Logistics',
+  6:'M6 — Supply Chain Relationships',
+  7:'M7 — Supply Chain Risk',
+  8:'M8 — Optimization, Sustainability & Technology'
+};
+
+const phases = [
+  {weeks:[1,4], label:'Phase 1', weekdayMins:60, satMins:90},
+  {weeks:[5,9], label:'Phase 2', weekdayMins:75, satMins:120},
+  {weeks:[10,14],label:'Phase 3', weekdayMins:90, satMins:120},
+  {weeks:[15,22],label:'Phase 4', weekdayMins:120,satMins:150},
+];
+
+function getPhase(w) {
+  return phases.find(p => w >= p.weeks[0] && w <= p.weeks[1]) || phases[3];
+}
+function getStudyMins(day, w) {
+  const p = getPhase(w);
+  return day === 'sat' ? p.satMins : p.weekdayMins;
+}
+function getDayPlan(w, day) {
+  return plan.find(p => p.w === w && p.day === day) || null;
+}
+
+function fmt(h, m) {
+  const ap = h < 12 ? 'AM' : 'PM';
+  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return dh + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+}
+function addM(h, m, mins) {
+  const t = h * 60 + m + mins;
+  return [Math.floor(t / 60) % 24, t % 60];
+}
+function fmtMins(mins) {
+  if (mins < 60) return mins + 'm';
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h + 'h' + (m ? m + 'm' : '');
+}
+
+function getSteps(mins) {
+  if (mins <= 60) return [
+    {n:1,t:'5 min',s:'Prime — skim chapter headings, ask what you already know'},
+    {n:2,t:'30 min',s:'Active reading — write main ideas in your own words, pause and summarize every few pages'},
+    {n:3,t:'25 min',s:'Active recall — close book, write everything from memory, then 10–15 practice questions. Review wrong answers immediately.'}
+  ];
+  if (mins <= 90) return [
+    {n:1,t:'5 min',s:'Prime — skim headings, activate prior knowledge'},
+    {n:2,t:'25 min',s:'Active reading — Unit 1, margin notes, summarize every few pages'},
+    {n:3,t:'15 min',s:'Recall Unit 1 — close book, write from scratch, 10 questions'},
+    {n:4,t:'5 min',s:'Reset — stand up, water, no phone'},
+    {n:5,t:'25 min',s:'Active reading — Unit 2 or deeper review of Unit 1'},
+    {n:6,t:'15 min',s:'Final recall + quiz — 15 questions, review wrong answers immediately'}
+  ];
+  if (mins <= 120) return [
+    {n:1,t:'5 min',s:'Prime — skim all headings'},
+    {n:2,t:'25 min',s:'Active reading — Unit 1'},
+    {n:3,t:'15 min',s:'Recall Unit 1 — close book, write, 10 questions'},
+    {n:4,t:'5 min',s:'Break — water, stand up'},
+    {n:5,t:'25 min',s:'Active reading — Unit 2'},
+    {n:6,t:'15 min',s:'Recall Unit 2 — close book, write, 10 questions'},
+    {n:7,t:'10 min',s:'Cumulative recall — connect both units from memory in one paragraph'}
+  ];
+  return [
+    {n:1,t:'5 min',s:'Prime — skim all headings'},
+    {n:2,t:'25 min',s:'Active reading — Unit 1'},
+    {n:3,t:'15 min',s:'Recall Unit 1 — close book, write, 10 questions'},
+    {n:4,t:'5 min',s:'Break'},
+    {n:5,t:'25 min',s:'Active reading — Unit 2'},
+    {n:6,t:'15 min',s:'Recall Unit 2 — close book, write, 10 questions'},
+    {n:7,t:'5 min',s:'Break'},
+    {n:8,t:'25 min',s:'Active reading — Unit 3 or deep review'},
+    {n:9,t:'15 min',s:'Final recall + cumulative quiz — 20+ questions, review every wrong answer'}
+  ];
+}
+
+function blk(cls, dot, time, title, sub, body, noExp) {
+  const id = 'b' + Math.random().toString(36).substr(2,6);
+  const ch = noExp ? '' : '<span class="block-chevron">▼</span>';
+  const oc = noExp ? '' : 'onclick="tog(\'' + id + '\')"';
+  const nc = noExp ? ' no-expand' : '';
+  const subHtml = sub ? '<div class="block-sub">' + sub + '</div>' : '';
+  const bodyHtml = body ? '<div class="block-body">' + body + '</div>' : '';
+  return `<div class="block ${cls}${nc}" id="${id}" ${oc}>
+    <div class="block-header">
+      <div class="block-dot" style="background:${dot}"></div>
+      <div class="block-left">
+        <div class="block-time">${time}</div>
+        <div class="block-title">${title}</div>${subHtml}
+      </div>${ch}
+    </div>${bodyHtml}
+  </div>`;
+}
+
+function tog(id) { document.getElementById(id).classList.toggle('open'); }
+
+function buildStudyBlock(dp, mins, h, m) {
+  const endArr = addM(h, m, mins);
+  const steps = getSteps(mins);
+  const stepsHtml = steps.map(s =>
+    `<div class="step"><div class="step-num">${s.n}</div><div class="step-text"><strong>${s.t}</strong> — ${s.s}</div></div>`
+  ).join('');
+  let badge = '';
+  let topicHtml = '';
+  if (dp && dp.type !== 'vac') {
+    const tl = dp.type === 'review' ? 'Review' : dp.type === 'exam' ? 'Exam simulation' : 'New content';
+    badge = `<div class="mod-badge">${modNames[dp.mod] || ''}<span class="type-pill">${tl}</span></div>`;
+    topicHtml = `<p><strong>${dp.topic}</strong></p><p>${dp.focus}</p>`;
+  }
+  const body = badge + topicHtml + `<div class="study-steps">${stepsHtml}</div>`;
+  return blk('b-study', '#6050c0', fmt(h, m) + ' – ' + fmt(endArr[0], endArr[1]),
+    'APICS Study — ' + fmtMins(mins), '', body);
+}
+
+function render() {
+  const w = parseInt(document.getElementById('weekSel').value);
+  const day = document.getElementById('daySel').value;
+  const phase = getPhase(w);
+  const studyMins = getStudyMins(day, w);
+  const dp = getDayPlan(w, day);
+  const absDate = getAbsDate(w, day);
+  const dateStr = absDate.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+
+  // Progress: count total study days from w1 thu onward
+  const totalDays = (TOTAL_WEEKS - 1) * 6 + 4; // week1 has 4 study days (Thu-Sat + implied), rest have 6
+  const thisDayIdx = (w - 1) * 6 + Math.max(0, DAYS.indexOf(day) - (w === 1 ? 3 : 0));
+  const pct = Math.min(100, Math.round(thisDayIdx / totalDays * 100));
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  const isVacFull_ = isVacFull(w, day);
+  const isPartial_ = isVacPartialStudy(w, day);
+  const isBefore = isBeforeStart(w, day);
+
+  document.getElementById('dayMeta').innerHTML =
+    `<strong>${dateStr}</strong> &nbsp;|&nbsp; <strong>${phase.label}</strong> &nbsp;|&nbsp; Study: <strong>${fmtMins(studyMins)}</strong>` +
+    (isVacFull_ ? ' &nbsp;|&nbsp; <strong style="color:#854F0B">Vacation</strong>' : '') +
+    (isBefore ? ' &nbsp;|&nbsp; <strong style="color:#888">Schedule starts Thu May 29</strong>' : '');
+
+  let html = '';
+
+  // Before schedule start
+  if (isBefore) {
+    html += blk('b-empty', '#a09e99', '', 'No schedule yet', '',
+      '<p>Your schedule begins Thursday May 29. Enjoy the remaining days before it kicks off.</p>', true);
+    document.getElementById('dayView').innerHTML = html;
+    return;
+  }
+
+  // Sunday
+  if (day === 'sun') {
+    html += blk('b-caff','#408020','7:30 AM','Wake + Green Tea','','<p>Slow morning. Ease in before church.</p>');
+    html += blk('b-meal','#b04070','8:30 AM','Breakfast','','<p>Light breakfast before liturgy, or wait for coffee hour depending on your parish fasting practice.</p>');
+    html += blk('b-church','#c05020','9:00 AM – 12:00 PM','Church + Fellowship','','<p>Liturgy, coffee hour, community. Anchor of the week.</p>');
+    html += blk('b-meal','#b04070','1:00 PM','Sunday Meal','','<p>Make it a real one. Cook, go out, eat with people from church.</p>');
+    html += blk('b-free','#808070','2:00 PM onward','Full Rest','','<p>No studying. No gym. No guilt. Full recovery for the week ahead.</p>', true);
+    document.getElementById('dayView').innerHTML = html;
+    return;
+  }
+
+  // Full vacation day
+  if (isVacFull_ && !isPartial_) {
+    html += blk('b-vac','#c09020','All day','Vacation','',`<p>${dp ? dp.focus : 'Rest and recharge.'}</p>`, true);
+    document.getElementById('dayView').innerHTML = html;
+    return;
+  }
+
+  const isWalk = day === 'tue' || day === 'thu';
+  const isSat = day === 'sat';
+
+  // Saturday
+  if (isSat) {
+    html += blk('b-caff','#408020','7:30 AM','Wake + Green Tea','','<p>Slower start. Saturday morning is your most important study session of the week.</p>');
+    html += blk('b-meal','#b04070','8:00 AM','Breakfast','','<p>Full meal — eggs, oats, fruit. Never study fasted on Saturday.</p>');
+    html += blk('b-caff','#408020','8:45 AM','Coffee','','<p>One coffee before sitting down. Peaks right as study begins at 9:00.</p>');
+
+    const studyEndArr = addM(9, 0, studyMins);
+    if (dp && dp.type === 'vac') {
+      html += blk('b-vac','#c09020','9:00 AM','Vacation — no study','',`<p>${dp.focus}</p>`, true);
+    } else {
+      html += buildStudyBlock(dp, studyMins, 9, 0);
+    }
+
+    html += blk('b-snack','#c04040', fmt(studyEndArr[0], studyEndArr[1]), 'Pre-Workout Snack','','<p>Banana, rice cakes, or dates. Fast carbs digested before lifting. No extra coffee needed.</p>');
+    const gymS = addM(studyEndArr[0], studyEndArr[1], 15);
+    const gymE = addM(gymS[0], gymS[1], 60);
+    html += blk('b-gym','#2a8a60', fmt(gymS[0],gymS[1]) + ' – ' + fmt(gymE[0],gymE[1]), 'Lift — apartment gym','','<p>Natural break between study and your free afternoon.</p>');
+    html += blk('b-shake','#808070','After gym','Protein Shake','','<p>Within 30–45 min post-lift.</p>');
+    const dinS = addM(gymE[0], gymE[1], 30);
+    const dinE = addM(dinS[0], dinS[1], 75);
+    html += blk('b-meal','#b04070', fmt(dinS[0],dinS[1]) + ' – ' + fmt(dinE[0],dinE[1]), 'Meal','','<p>Full meal — you studied and lifted. Take your time.</p>');
+    html += blk('b-free','#808070', fmt(dinE[0],dinE[1]) + ' onward', 'Free Afternoon','','<p>Completely yours — outdoors, Orthodox content, social, or rest.</p>', true);
+    document.getElementById('dayView').innerHTML = html;
+    return;
+  }
+
+  // Weekdays
+  html += blk('b-caff','#408020','6:30 AM','Wake + Green Tea','',
+    `<p>${isWalk ? 'Walk day — eat something small before heading out.' : 'Light caffeine on waking. Don\'t eat yet — give it 30–45 min.'}</p>`);
+
+  if (isWalk) {
+    html += blk('b-meal','#b04070','7:00 AM','Breakfast','','<p>Banana, toast, or yogurt. Small enough to digest before walking.</p>');
+    html += blk('b-walk','#c08020','7:10 – 7:30 AM','Morning Walk — 20 min','','<p>No phone, no podcast. Clears your head. Out the door by 7:30 for the 30 min commute.</p>');
+  } else {
+    html += blk('b-meal','#b04070','7:15 AM','Breakfast','','<p>Eggs, oats, or Greek yogurt with fruit. Leave by 7:30 — 30 min commute puts you in at 8:00.</p>');
+  }
+
+  const workSub = '<strong>2:30 PM — Pre-workout snack + coffee:</strong> banana, rice cakes, or dates. Coffee peaks ~45 min later right as you start lifting. Clears by 10:30 PM.';
+  html += blk('b-work','#5a8fc0','8:00 AM – 3:00 PM','Office', workSub,
+    '<p>7-hour work day. Second green tea on arrival. Earlier start beats rush hour and looks good for optics.</p>');
+  html += blk('b-gym','#2a8a60','3:15 – 4:15 PM','Lift — gym across from office','','<p>Walk straight across — don\'t go home first. Carbs and caffeine are both peaking.</p>');
+  html += blk('b-shake','#808070','After gym','Protein Shake','','<p>Drink before you get in the car. Within 30–45 min post-lift. 40 min drive home follows.</p>');
+  html += blk('b-free','#808070','4:15 – 4:55 PM','Drive Home — 40 min','','<p>Decompression. Arrive home around 4:55 PM.</p>', true);
+
+  // Partial vacation (Jun 5 — study skipped)
+  if (isPartial_) {
+    html += blk('b-vac','#c09020','4:50 PM','Leaving for vacation','',
+      '<p>Departing at 4:50 PM — study block skipped today. Back June 7 at 11 PM.</p>', true);
+    document.getElementById('dayView').innerHTML = html;
+    return;
+  }
+
+  // Normal study + dinner + wind down
+  if (dp && dp.type === 'vac') {
+    html += blk('b-vac','#c09020','5:00 PM','Vacation — no study','',`<p>${dp.focus}</p>`, true);
+  } else {
+    html += buildStudyBlock(dp, studyMins, 17, 0);
+    const dinS = addM(17, 0, studyMins);
+    const dinE = addM(dinS[0], dinS[1], 75);
+    html += blk('b-meal','#b04070', fmt(dinS[0],dinS[1]) + ' – ' + fmt(dinE[0],dinE[1]), 'Dinner','',
+      '<p>Full dinner — 1 hr 15 min. Cook, eat, decompress. No rushing.</p>');
+    html += blk('b-free','#808070', fmt(dinE[0],dinE[1]) + ' onward', 'Wind Down','',
+      '<p>No screens after 9:30 PM. Sleep by 10:30 — non-negotiable for memory consolidation and gym recovery.</p>', true);
+  }
+
+  document.getElementById('dayView').innerHTML = html;
+}
+
+function buildSelectors() {
+  const wSel = document.getElementById('weekSel');
+  for (let w = 1; w <= TOTAL_WEEKS; w++) {
+    // Week label date = Thursday of that week (first active day of week 1)
+    const d = new Date(SCHEDULE_START);
+    d.setDate(d.getDate() + (w - 1) * 7);
+    const ph = getPhase(w);
+    const o = document.createElement('option');
+    o.value = w;
+    o.textContent = `Week ${w} — ${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})} (${ph.label})`;
+    wSel.appendChild(o);
+  }
+  DAYS.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = DAY_NAMES[v];
+    document.getElementById('daySel').appendChild(o);
+  });
+}
+
+function jumpToday() {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const start = new Date(2025, 4, 26); // Week 1 Monday = May 26
+  const diffMs = now - start;
+  const diffDays = Math.floor(diffMs / (24*3600*1000));
+  if (diffDays < 0) {
+    // Before schedule
+    document.getElementById('weekSel').value = 1;
+    document.getElementById('daySel').value = 'thu';
+    render();
+    return;
+  }
+  const w = Math.min(TOTAL_WEEKS, Math.floor(diffDays / 7) + 1);
+  const dayIdx = diffDays % 7; // 0=Mon,1=Tue,...,6=Sun
+  const day = DAYS[dayIdx];
+  document.getElementById('weekSel').value = w;
+  document.getElementById('daySel').value = day;
+  render();
+}
+
+buildSelectors();
+jumpToday();
+</script>
+</body>
+</html>
